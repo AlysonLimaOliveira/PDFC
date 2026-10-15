@@ -519,6 +519,17 @@ pub fn artcraft_mark(ui: &mut egui::Ui, size: f32) -> Response {
     )
 }
 
+/// Official Coat of Arms of the Municipality of Corupá / SC (Brasão do Município de Corupá).
+pub fn corupa_mark(ui: &mut egui::Ui, size: f32) -> Response {
+    let aspect = 437.0 / 506.0;
+    ui.add(
+        egui::Image::from_bytes("bytes://corupa-brasao.png", include_bytes!("../../../assets/corupa/brasao-transparent.png"))
+            .fit_to_exact_size(vec2(size * aspect, size))
+            .alt_text("Prefeitura de Corupá"),
+    )
+}
+
+
 /// Buttons for every community link (`pdfcraft_engine::links`), Discord first and prominent.
 /// Returns the registry command of the one clicked.
 pub fn community_links(ui: &mut egui::Ui) -> Option<&'static str> {

@@ -1153,30 +1153,29 @@ fn dialogs(app: &mut PdfCraftApp, ctx: &egui::Context) {
                     2 => crate::credits::models_ui(ui),
                     _ => {
                         ui.horizontal(|ui| {
-                            widgets::artcraft_mark(ui, 40.0);
+                            widgets::corupa_mark(ui, 48.0);
                             ui.vertical(|ui| {
-                                ui.label(egui::RichText::new("PdfCraft").font(theme::semibold(20.0)));
+                                ui.label(egui::RichText::new("Prefeitura Municipal de Corupá").font(theme::semibold(19.0)));
+                                ui.label(egui::RichText::new("Editor de Documentos PDF").font(theme::medium(14.0)));
                                 ui.label(crate::i18n::fmt(tl!("Version {v}"), &[("v", &pdfcraft_engine::build_info::version())]));
                             });
                         });
-                        ui.add_space(6.0);
-                        ui.label(tl!("A clean-room, open-source PDF application written in Rust. MIT OR Apache-2.0."));
+                        ui.add_space(8.0);
+                        ui.label("Edição institucional personalizada para os servidores e setores da Prefeitura de Corupá / SC.");
                         ui.label(
                             egui::RichText::new(
-                                "Rendering: hayro (bootstrap) · UI: egui · Icons: Lucide (ISC) · Fonts: Inter, JetBrains Mono, Dancing Script (OFL)",
+                                "Processamento 100% local, seguro e privativo · Baseado no motor livre PdfCraft (MIT / Apache-2.0)",
                             )
                             .color(t.text_muted)
                             .small(),
                         );
                         ui.add_space(12.0);
                         ui.horizontal(|ui| {
-                            ui.label(egui::RichText::new(tl!("Part of")).color(t.text_muted));
-                            widgets::artcraft_logo(ui, 16.0);
+                            let p = widgets::icon_pill(ui, "globe", "Portal da Prefeitura (corupa.sc.gov.br)", true);
+                            if p.on_hover_text("Visitar o portal oficial da Prefeitura de Corupá").clicked() {
+                                ui.ctx().open_url(egui::OpenUrl::new_tab("https://corupa.sc.gov.br"));
+                            }
                         });
-                        ui.add_space(6.0);
-                        if let Some(cmd) = widgets::community_links(ui) {
-                            link_command = Some(cmd);
-                        }
                     }
                 }
             }

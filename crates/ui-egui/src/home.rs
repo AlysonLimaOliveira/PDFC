@@ -22,12 +22,18 @@ pub fn show(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
     let t = Tokens::get(ui.ctx());
     egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
         egui::Frame::NONE.inner_margin(egui::Margin { left: 36, right: 36, top: 28, bottom: 28 }).show(ui, |ui| {
-            ui.label(egui::RichText::new(tl!("Welcome to PdfCraft")).font(theme::semibold(24.0)));
-            ui.label(
-                egui::RichText::new(tl!("An open-source PDF workbench — local, private, and scriptable."))
-                    .color(t.text_muted)
-                    .font(theme::regular(14.0)),
-            );
+            ui.horizontal(|ui| {
+                widgets::corupa_mark(ui, 54.0);
+                ui.add_space(8.0);
+                ui.vertical(|ui| {
+                    ui.label(egui::RichText::new("PDFC — Prefeitura Municipal de Corupá").font(theme::semibold(24.0)));
+                    ui.label(
+                        egui::RichText::new("Ambiente Institucional de Edição e Gestão de Documentos PDF")
+                            .color(t.text_muted)
+                            .font(theme::regular(14.0)),
+                    );
+                });
+            });
             ui.add_space(14.0);
             egui::Frame::NONE
                 .fill(t.card)
@@ -37,16 +43,35 @@ pub fn show(app: &mut PdfCraftApp, ui: &mut egui::Ui) {
                 .show(ui, |ui| {
                     ui.set_width(ui.available_width());
                     ui.horizontal(|ui| {
-                        widgets::artcraft_mark(ui, 28.0);
+                        widgets::corupa_mark(ui, 32.0);
                         ui.vertical(|ui| {
-                            ui.label(egui::RichText::new(tl!("Join the ArtCraft community")).font(theme::semibold(15.0)));
-                            ui.label(egui::RichText::new(tl!("Get help, share feedback and follow development on Discord.")).color(t.text_muted));
+                            ui.label(egui::RichText::new("Município de Corupá — Santa Catarina").font(theme::semibold(15.0)));
+                            ui.label(
+                                egui::RichText::new("Acesso rápido a portais municipais, processos administrativos e serviços oficiais.")
+                                    .color(t.text_muted),
+                            );
                         });
                     });
-                    ui.add_space(8.0);
-                    if let Some(cmd) = widgets::community_links(ui) {
-                        app.execute(cmd);
-                    }
+                    ui.add_space(10.0);
+                    ui.horizontal_wrapped(|ui| {
+                        ui.spacing_mut().item_spacing = vec2(8.0, 8.0);
+                        let p1 = widgets::icon_pill(ui, "globe", "Portal Oficial (corupa.sc.gov.br)", true);
+                        if p1.on_hover_text("Abrir o portal oficial da Prefeitura de Corupá").clicked() {
+                            ui.ctx().open_url(egui::OpenUrl::new_tab("https://corupa.sc.gov.br"));
+                        }
+                        let p2 = widgets::icon_pill(ui, "file-text", "Diário Oficial", false);
+                        if p2.on_hover_text("Acessar publicações e atos oficiais").clicked() {
+                            ui.ctx().open_url(egui::OpenUrl::new_tab("https://corupa.sc.gov.br/diario-oficial"));
+                        }
+                        let p3 = widgets::icon_pill(ui, "shield-check", "Transparência", false);
+                        if p3.on_hover_text("Portal da Transparência de Corupá").clicked() {
+                            ui.ctx().open_url(egui::OpenUrl::new_tab("https://corupa.sc.gov.br/transparencia"));
+                        }
+                        let p4 = widgets::icon_pill(ui, "messages-square", "Ouvidoria", false);
+                        if p4.on_hover_text("Canal de Ouvidoria e Atendimento").clicked() {
+                            ui.ctx().open_url(egui::OpenUrl::new_tab("https://corupa.sc.gov.br/ouvidoria"));
+                        }
+                    });
                 });
             ui.add_space(22.0);
 
