@@ -1,78 +1,77 @@
 <p align="center">
-  <a href="https://getartcraft.com/">
-    <picture>
-      <source media="(prefers-color-scheme: dark)" srcset="docs/brand/artcraft-logo-white.svg">
-      <img alt="ArtCraft" src="docs/brand/artcraft-logo.svg" width="200">
-    </picture>
-  </a>
+  <img alt="Brasão do Município de Corupá" src="assets/corupa/brasao-transparent.png" width="160">
 </p>
 
-
-<h1 align="center">PdfCraft</h1>
+<h1 align="center">PDFC — Prefeitura Municipal de Corupá</h1>
 
 <p align="center">
-  <b>The PDF workbench; an open-source, clean-room reimplementation of Adobe Acrobat, rebuilt in pure Rust.</b><br>
-  Read, organize, combine, split and secure PDFs in a fast, native app, written in Rust from the ground up.<br>
-  macOS · Windows · Linux · FreeBSD · the web
+  <b>Sistema Institucional de Edição, Visualização e Gestão de Documentos PDF</b><br>
+  Ambiente seguro, rápido e privativo para uso dos servidores e departamentos da Prefeitura de Corupá / SC.<br>
+  Processamento 100% local · Sem envio de dados para a nuvem · Alta performance nativa em Rust
 </p>
 
 <p align="center">
-  <img alt="License: MIT OR Apache-2.0" src="https://img.shields.io/badge/license-MIT%20OR%20Apache--2.0-12a58a">
-  <img alt="Written in Rust" src="https://img.shields.io/badge/written%20in-Rust-0a7563">
-  <img alt="Platforms: macOS, Windows, Linux, FreeBSD, web" src="https://img.shields.io/badge/runs%20on-macOS%20%C2%B7%20Windows%20%C2%B7%20Linux%20%C2%B7%20FreeBSD%20%C2%B7%20web-12a58a">
-  <img alt="No account, no telemetry" src="https://img.shields.io/badge/no%20account-no%20telemetry-0a7563">
+  <img alt="Prefeitura de Corupá" src="https://img.shields.io/badge/Munic%C3%ADpio-Corup%C3%A1%20--%20SC-12a58a">
+  <img alt="Linguagem: Rust" src="https://img.shields.io/badge/linguagem-Rust%202024-0a7563">
+  <img alt="Plataforma: Windows" src="https://img.shields.io/badge/plataforma-Windows%20%C2%B7%20Linux%20%C2%B7%20macOS-12a58a">
+  <img alt="Privacidade: 100% Local" src="https://img.shields.io/badge/privacidade-100%25%20Local%20%C2%B7%20Sem%20Telemetria-0a7563">
+  <img alt="Licença: MIT / Apache-2.0" src="https://img.shields.io/badge/licen%C3%A7a-MIT%20OR%20Apache--2.0-12a58a">
 </p>
 
 <p align="center">
-  <a href="https://discord.gg/artcraft"><img alt="Join the ArtCraft community on Discord" src="https://img.shields.io/badge/Join%20us%20on%20Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" height="40"></a>
-</p>
-
-<p align="center">
-  <a href="https://getartcraft.com/apps/pdfcraft"><b>PdfCraft on getartcraft.com</b></a> ·
-  <a href="https://getartcraft.com/">ArtCraft</a> ·
-  <a href="https://getartcraft.com/apps">All Crafting Apps</a>
+  <a href="https://corupa.sc.gov.br"><b>Portal Oficial</b></a> ·
+  <a href="https://corupa.sc.gov.br/diario-oficial"><b>Diário Oficial</b></a> ·
+  <a href="https://corupa.sc.gov.br/transparencia"><b>Portal da Transparência</b></a> ·
+  <a href="https://corupa.sc.gov.br/ouvidoria"><b>Ouvidoria</b></a>
 </p>
 
 <br>
 
 <p align="center">
-  <img src="docs/images/pdfcraft-viewer.png" alt="PdfCraft with the PdfCraft Showcase cover page open, the All tools panel on the left and 20 threaded comments on the right" width="100%">
+  <img src="wallpaper.jpg" alt="Wallpaper Institucional da Prefeitura Municipal de Corupá" width="85%">
   <br>
-  <sub>The PdfCraft Showcase, a 13-page specimen PDF, open with the All tools panel and threaded comments.</sub>
+  <sub>Identidade visual oficial do Município de Corupá integrada ao sistema PDFC.</sub>
 </p>
 
 > [!NOTE]
-> **ArtCraft is a community of artists from all walks of life.** Digital, generative, music,
-> games &mdash; if you make things, you're one of us. **[Come say hi on Discord](https://discord.gg/artcraft).**
-
-<p align="center">
-  <a href="#highlights">Highlights</a> ·
-  <a href="#read-anything-beautifully">Read</a> ·
-  <a href="#find-it-select-it-copy-it">Find</a> ·
-  <a href="#organize-pages-like-cards-on-a-table">Organize</a> ·
-  <a href="#combine-and-split-without-losing-a-thing">Combine &amp; split</a> ·
-  <a href="#open-protected-documents-and-respect-their-rules">Protect</a> ·
-  <a href="#comments-forms-layers-and-attachments">Forms &amp; layers</a> ·
-  <a href="#runs-everywhere-stays-yours">Everywhere</a> ·
-  <a href="#built-for-agents-too">Agents</a> ·
-  <a href="#how-its-built">How it's built</a> ·
-  <a href="#get-started">Get started</a> ·
-  <a href="#whats-next">What's next</a> ·
-  <a href="#downloads">Downloads</a> ·
-  <a href="#the-crafting-apps">Crafting Apps</a>
-</p>
+> **Privacidade e Segurança Institucional:** O **PDFC** processa todos os documentos e formulários diretamente no computador do servidor, sem qualquer transmissão para servidores de terceiros ou nuvem, garantindo conformidade com a LGPD e sigilo de processos administrativos.
 
 ---
 
-## Community
+## 🏛️ Sobre o PDFC
 
-PdfCraft is part of [ArtCraft](https://getartcraft.com). Come say hello, get help and follow development:
+O **PDFC** é uma aplicação nativa de alta fidelidade desenvolvida para atender às demandas de leitura, edição, organização, mesclagem e preenchimento de formulários PDF no âmbito da **Prefeitura Municipal de Corupá**.
 
-- **Discord: [discord.gg/artcraft](https://discord.gg/artcraft)**. This is the fastest way to get help and share feedback. The app has a Discord button in its title bar.
-- **Web page:** [getartcraft.com/apps/pdfcraft](https://getartcraft.com/apps/pdfcraft)
-- **Source:** [github.com/storytold/pdfcraft](https://github.com/storytold/pdfcraft)
+Baseado no motor de software livre *PdfCraft*, o PDFC substitui soluções proprietárias com total independência tecnológica, rapidez de inicialização e interface em português adaptada à rotina pública.
 
-The ArtCraft name and logos in `docs/brand/` are trademarks of the ArtCraft Team and are not open source. They may be used only unmodified, and only as part of PdfCraft (see `docs/brand/LICENSE-brand.txt`). Forks and modified versions must remove them.
+---
+
+## 💻 Como Rodar e Compilar
+
+### Pré-requisitos
+1. **Rust 1.95+** e Cargo instalados ([rustup.rs](https://rustup.rs)).
+2. No Windows: Ferramentas de compilação C++ (Microsoft C++ Build Tools).
+
+### 1. Rodar em modo de desenvolvimento
+```powershell
+cargo run -p pdfcraft
+```
+
+Para abrir diretamente com um arquivo PDF selecionado:
+```powershell
+cargo run -p pdfcraft -- "caminho\para\documento.pdf"
+```
+
+### 2. Gerar o Executável Final (.exe)
+Para distribuir nos computadores e estações da Prefeitura:
+```powershell
+cargo build --release -p pdfcraft
+```
+O executável otimizado com o ícone oficial da Prefeitura de Corupá será gerado em:
+`target\release\pdfcraft.exe` (ou `PDFC.exe`).
+
+---
+
 
 ## Highlights
 
