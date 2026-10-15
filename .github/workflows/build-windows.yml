@@ -1,0 +1,75 @@
+name: Gerar Instalador Windows (PDFC)
+
+on:
+  workflow_dispatch:
+    inputs:
+      create_release:
+        description: 'Publicar versão no GitHub Releases?'
+        required: false
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'README.md'
+      - 'docs/**'
+      - '.gitignore'
+
+permissions:
+  contents: write
+
+jobs:
+  build-msi:
+    name: Compilar PDFC e Gerar .MSI (x64)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout do Código
+        uses: actions/checkout@v4
+
+      - name: Configurar Rust Toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Configurar .NET SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Instalar WiX Toolset v5
+        run: dotnet tool install --global wix --version 5.0.2
+
+      - name: Gerar Instalador (.msi) e Pacote Portátil (.zip)
+        shell: pwsh
+        run: |
+          pwsh packaging/windows/package.ps1 -Arch x64
+
+      - name: Disponibilizar Instalador Oficial (.msi) para Download
+        uses: actions/upload-artifact@v4
+        with:
+          name: PDFC-Instalador-Oficial-Windows-x64
+          path: dist/release/*.msi
+
+      - name: Disponibilizar Versão Portátil (.zip) para Download
+        uses: actions/upload-artifact@v4
+        with:
+          name: PDFC-Portatil-Windows-x64
+          path: dist/release/*.zip
+
+      - name: Criar Release no GitHub (opcional)
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.create_release == true }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.8.0-corupa
+          name: "PDFC v0.8.0 — Prefeitura Municipal de Corupá"
+          body: |
+            ## PDFC — Prefeitura Municipal de Corupá
+            
+            Versão oficial do editor e visualizador de PDFs customizado para a Prefeitura Municipal de Corupá.
+            
+            ### Arquivos disponíveis:
+            - **Instalador Oficial (.msi)**: Instalação padrão para todos os computadores da prefeitura, com atalhos e integração ao Windows.
+            - **Versão Portátil (.zip)**: Não requer instalação, basta descompactar e executar.
+          files: |
+            dist/release/*.msi
+            dist/release/*.zip

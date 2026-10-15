@@ -1,4 +1,4 @@
-﻿<#
+<#
 .SYNOPSIS
   Check the compiled MSI's install scope, publisher, shortcuts, native UI and OCR models, without installing it.
 .EXAMPLE
@@ -35,7 +35,7 @@ function Assert-NoRow([string] $Sql, [string] $What) {
 # Test the compiled condition with Windows Installer's evaluator, in a restricted session that
 # cannot change machine state. Normal installs/repairs work, per-user overrides fail, and removal
 # of an older incorrectly scoped installation remains possible (#305).
-$scopeMessage = 'PdfCraft must be installed for all users. Run setup with administrator privileges and ALLUSERS=1; per-user installation is not supported.'
+$scopeMessage = 'O PDFC deve ser instalado para todos os usuários. Execute a instalação com privilégios de administrador (ALLUSERS=1).'
 $scopeCondition = Read-Row ('SELECT `Condition` FROM `LaunchCondition` WHERE `Description` = ''' + $scopeMessage + '''') 1
 $Installer.UILevel = 2
 $session = $null
@@ -68,9 +68,9 @@ foreach ($sequence in @('InstallUISequence', 'InstallExecuteSequence')) {
   }
 }
 $manufacturer = Read-Row 'SELECT `Value` FROM `Property` WHERE `Property` = ''Manufacturer''' 1
-Assert-Equal $manufacturer[0] 'Learning Machines LLC' 'MSI manufacturer'
+Assert-Equal $manufacturer[0] 'Prefeitura Municipal de Corupá' 'MSI manufacturer'
 $status = Read-Row 'SELECT `Text` FROM `Control` WHERE `Dialog_` = ''InstallProgress'' AND `Control` = ''Status''' 1
-Assert-Equal $status[0] 'Please wait while setup completes.' 'Persistent progress message'
+Assert-Equal $status[0] 'Por favor, aguarde enquanto a instalação é concluída.' 'Persistent progress message'
 Assert-NoRow 'SELECT `Event` FROM `EventMapping` WHERE `Dialog_` = ''InstallProgress'' AND `Control_` = ''Status''' 'progress text subscription'
 
 # Plain (non-advertised) shortcuts to pdfcraft.exe, each in its own component; the desktop one is
@@ -131,13 +131,13 @@ function Assert-KeptOnUpdate([string] $Property, [string] $Release, [string] $Fo
     if ($session) { [void] [Runtime.InteropServices.Marshal]::FinalReleaseComObject($session) }
   }
 }
-Assert-KeptOnUpdate 'INSTALLDESKTOPSHORTCUT' 'WIX_UPGRADE_DETECTED' 'EXISTINGDESKTOPSHORTCUT' 'C:\Users\Public\Desktop\PdfCraft.lnk' 'PdfcraftDesktopShortcut' 'Desktop shortcut'
+Assert-KeptOnUpdate 'INSTALLDESKTOPSHORTCUT' 'WIX_UPGRADE_DETECTED' 'EXISTINGDESKTOPSHORTCUT' 'C:\Users\Public\Desktop\PDFC.lnk' 'PdfcraftDesktopShortcut' 'Desktop shortcut'
 $secure = Read-Row 'SELECT `Value` FROM `Property` WHERE `Property` = ''SecureCustomProperties''' 1
 if (($secure[0] -split ';') -notcontains 'INSTALLDESKTOPSHORTCUT') { throw "INSTALLDESKTOPSHORTCUT is not secure: '$($secure[0])'" }
 $checkbox = Read-Row 'SELECT `Type`, `Property`, `Text` FROM `Control` WHERE `Dialog_` = ''InstallWelcome'' AND `Control` = ''DesktopShortcut''' 3
 Assert-Equal $checkbox[0] 'CheckBox' 'Welcome desktop-shortcut control'
 Assert-Equal $checkbox[1] 'INSTALLDESKTOPSHORTCUT' 'Welcome checkbox property'
-if ($checkbox[2] -notmatch 'desktop shortcut') { throw "Welcome checkbox label: '$($checkbox[2])'" }
+if ($checkbox[2] -notmatch 'Área de Trabalho') { throw "Welcome checkbox label: '$($checkbox[2])'" }
 $checked = Read-Row 'SELECT `Value` FROM `CheckBox` WHERE `Property` = ''INSTALLDESKTOPSHORTCUT''' 1
 Assert-Equal $checked[0] '1' 'Welcome checkbox value'
 $app = Read-Row 'SELECT `KeyPath` FROM `Component` WHERE `Component` = ''PdfcraftApp''' 1
@@ -181,7 +181,7 @@ $imageKey = 'Software\Classes\SystemFileAssociations\.png\shell\PdfCraft.CreateP
 foreach ($ext in @('png', 'jpg', 'jpeg', 'tif', 'tiff', 'gif', 'bmp', 'jp2', 'j2k', 'jpx')) {
   $key = 'Software\Classes\SystemFileAssociations\.' + $ext + '\shell\PdfCraft.CreatePdf'
   $menu = Read-Row ('SELECT `Value`, `Component_`, `Root` FROM `Registry` WHERE `Key` = ''' + $key + ''' AND `Name` IS NULL') 3
-  Assert-Equal $menu[0] 'Create PDF with PdfCraft…' "$ext context menu label"
+  Assert-Equal $menu[0] 'Criar PDF com o PDFC…' "$ext context menu label"
   Assert-Equal $menu[1] 'PdfcraftImageContextMenu' "$ext context menu component"
   Assert-Equal $menu[2] '2' "$ext context menu HKLM root"
   $command = Read-Row ('SELECT `Value`, `Component_` FROM `Registry` WHERE `Key` = ''' + $key + '\command''') 2
@@ -203,18 +203,18 @@ $imageComponent = Read-Row 'SELECT `KeyPath`, `Attributes` FROM `Component` WHER
 Assert-Equal $imageComponent[0] $imageKeyPath[0] 'Image context menu key path'
 # msidbComponentAttributesRegistryKeyPath (4).
 if (([int] $imageComponent[1] -band 4) -eq 0) { throw "Image context menu key path is not a registry value: attributes $($imageComponent[1])" }
-Assert-KeptOnUpdate 'INSTALLIMAGECONTEXTMENU' 'IMAGECONTEXTMENURELEASE' 'EXISTINGIMAGECONTEXTMENU' 'Create PDF with PdfCraft…' 'PdfcraftImageContextMenu' 'Image context menu'
+Assert-KeptOnUpdate 'INSTALLIMAGECONTEXTMENU' 'IMAGECONTEXTMENURELEASE' 'EXISTINGIMAGECONTEXTMENU' 'Criar PDF com o PDFC…' 'PdfcraftImageContextMenu' 'Image context menu'
 Assert-MenuSearch 'EXISTINGIMAGECONTEXTMENU' $imageKey 'IMAGECONTEXTMENURELEASE' '0.4.0' 'Image context menu'
 if (($secure[0] -split ';') -notcontains 'INSTALLIMAGECONTEXTMENU') { throw "INSTALLIMAGECONTEXTMENU is not secure: '$($secure[0])'" }
 
-# PDF context menu (#682): "Edit with PdfCraft" opens the file in PdfCraft. Its own component, gated
+# PDF context menu (#682): "Editar com o PDFC" opens the file in PdfCraft. Its own component, gated
 # by INSTALLPDFCONTEXTMENU (on for a first install, kept on update only while present, secure, welcome
 # checkbox), with its menu value as key path so uninstall removes it. Several selected PDFs each start pdfcraft.exe "%1" (Document), which the
 # single-instance hand-off opens as tabs. The .pdf default is never set, so the user's default app
 # stays.
 $pdfKey = 'Software\Classes\SystemFileAssociations\.pdf\shell\PdfCraft.Edit'
 $pdfMenu = Read-Row ('SELECT `Registry`, `Value`, `Component_`, `Root` FROM `Registry` WHERE `Key` = ''' + $pdfKey + ''' AND `Name` IS NULL') 4
-Assert-Equal $pdfMenu[1] 'Edit with PdfCraft' 'PDF context menu label'
+Assert-Equal $pdfMenu[1] 'Editar com o PDFC' 'PDF context menu label'
 Assert-Equal $pdfMenu[2] 'PdfcraftPdfContextMenu' 'PDF context menu component'
 Assert-Equal $pdfMenu[3] '2' 'PDF context menu HKLM root'
 foreach ($value in @(@('Icon', '"[#PdfcraftExe]",0'), @('MultiSelectModel', 'Document'))) {
@@ -228,13 +228,13 @@ Assert-Equal $pdfCommand[1] 'PdfcraftPdfContextMenu' 'PDF context menu command c
 $pdfComponent = Read-Row 'SELECT `Condition`, `KeyPath` FROM `Component` WHERE `Component` = ''PdfcraftPdfContextMenu''' 2
 Assert-Equal $pdfComponent[0] 'INSTALLPDFCONTEXTMENU = 1' 'PDF context menu condition'
 Assert-Equal $pdfComponent[1] $pdfMenu[0] 'PDF context menu key path'
-Assert-KeptOnUpdate 'INSTALLPDFCONTEXTMENU' 'PDFCONTEXTMENURELEASE' 'EXISTINGPDFCONTEXTMENU' 'Edit with PdfCraft' 'PdfcraftPdfContextMenu' 'PDF context menu'
+Assert-KeptOnUpdate 'INSTALLPDFCONTEXTMENU' 'PDFCONTEXTMENURELEASE' 'EXISTINGPDFCONTEXTMENU' 'Editar com o PDFC' 'PdfcraftPdfContextMenu' 'PDF context menu'
 Assert-MenuSearch 'EXISTINGPDFCONTEXTMENU' $pdfKey 'PDFCONTEXTMENURELEASE' '0.7.1' 'PDF context menu'
 if (($secure[0] -split ';') -notcontains 'INSTALLPDFCONTEXTMENU') { throw "INSTALLPDFCONTEXTMENU is not secure: '$($secure[0])'" }
 $pdfCheckbox = Read-Row 'SELECT `Type`, `Property`, `Text` FROM `Control` WHERE `Dialog_` = ''InstallWelcome'' AND `Control` = ''PdfContextMenu''' 3
 Assert-Equal $pdfCheckbox[0] 'CheckBox' 'Welcome PDF context-menu control'
 Assert-Equal $pdfCheckbox[1] 'INSTALLPDFCONTEXTMENU' 'Welcome PDF context-menu property'
-if ($pdfCheckbox[2] -notmatch 'Edit with PdfCraft') { throw "Welcome PDF context-menu label: '$($pdfCheckbox[2])'" }
+if ($pdfCheckbox[2] -notmatch 'Editar com o PDFC') { throw "Welcome PDF context-menu label: '$($pdfCheckbox[2])'" }
 $pdfChecked = Read-Row 'SELECT `Value` FROM `CheckBox` WHERE `Property` = ''INSTALLPDFCONTEXTMENU''' 1
 Assert-Equal $pdfChecked[0] '1' 'Welcome PDF context-menu value'
 Assert-NoRow 'SELECT `Registry` FROM `Registry` WHERE `Key` = ''Software\Classes\.pdf'' AND `Name` IS NULL' '.pdf default app'
@@ -247,12 +247,12 @@ foreach ($exit in @(@('InstallComplete', '-1'), @('InstallCancelled', '-2'), @('
   Assert-Equal $row[1] $exit[1] "$($exit[0]) exit path"
   $finish = Read-Row ('SELECT `Type`, `Text` FROM `Control` WHERE `Dialog_` = ''' + $exit[0] + ''' AND `Control` = ''Finish''') 2
   Assert-Equal $finish[0] 'PushButton' "$($exit[0]) Finish control"
-  Assert-Equal $finish[1] '&Finish' "$($exit[0]) Finish label"
+  Assert-Equal $finish[1] '&Concluir' "$($exit[0]) Finish label"
   $endDialog = Read-Row ('SELECT `Argument` FROM `ControlEvent` WHERE `Dialog_` = ''' + $exit[0] + ''' AND `Control_` = ''Finish'' AND `Event` = ''EndDialog''') 1
   Assert-Equal $endDialog[0] 'Return' "$($exit[0]) Finish event"
 }
 $title = Read-Row 'SELECT `Text` FROM `Control` WHERE `Dialog_` = ''InstallComplete'' AND `Control` = ''Title''' 1
-if ($title[0] -notmatch 'completed successfully') { throw 'Success dialog does not confirm completion' }
+if ($title[0] -notmatch 'concluída com sucesso') { throw 'Success dialog does not confirm completion' }
 # OCR models (#103): installed into models\ beside pdfcraft.exe, where the app looks for them.
 $modelsDir = Read-Row 'SELECT `Directory_Parent`, `DefaultDir` FROM `Directory` WHERE `Directory` = ''ModelsFolder''' 2
 Assert-Equal $modelsDir[0] 'INSTALLFOLDER' 'OCR models folder parent'
