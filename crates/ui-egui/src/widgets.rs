@@ -519,13 +519,13 @@ pub fn artcraft_mark(ui: &mut egui::Ui, size: f32) -> Response {
     )
 }
 
-/// Official Coat of Arms of the Municipality of Corupá / SC (Brasão do Município de Corupá).
+/// Official Logo of PDFC — Prefeitura Municipal de Corupá.
 pub fn corupa_mark(ui: &mut egui::Ui, size: f32) -> Response {
-    let aspect = 437.0 / 506.0;
+    let aspect = 1260.0 / 1500.0;
     ui.add(
-        egui::Image::from_bytes("bytes://corupa-brasao.png", include_bytes!("../../../assets/corupa/brasao-transparent.png"))
+        egui::Image::from_bytes("bytes://pdfc-corupa-logo.png", include_bytes!("../../../assets/corupa/brasao-transparent.png"))
             .fit_to_exact_size(vec2(size * aspect, size))
-            .alt_text("Prefeitura de Corupá"),
+            .alt_text("PDFC — Prefeitura de Corupá"),
     )
 }
 

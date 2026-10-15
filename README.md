@@ -1,5 +1,5 @@
 <p align="center">
-  <img alt="Brasão do Município de Corupá" src="assets/corupa/brasao-transparent.png" width="160">
+  <img alt="Logo Oficial PDFC — Prefeitura Municipal de Corupá" src="assets/corupa/logo-transparent.png" width="180">
 </p>
 
 <h1 align="center">PDFC — Prefeitura Municipal de Corupá</h1>
