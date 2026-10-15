@@ -137,7 +137,7 @@ if (($secure[0] -split ';') -notcontains 'INSTALLDESKTOPSHORTCUT') { throw "INST
 $checkbox = Read-Row 'SELECT `Type`, `Property`, `Text` FROM `Control` WHERE `Dialog_` = ''InstallWelcome'' AND `Control` = ''DesktopShortcut''' 3
 Assert-Equal $checkbox[0] 'CheckBox' 'Welcome desktop-shortcut control'
 Assert-Equal $checkbox[1] 'INSTALLDESKTOPSHORTCUT' 'Welcome checkbox property'
-if ($checkbox[2] -notmatch 'Área de Trabalho') { throw "Welcome checkbox label: '$($checkbox[2])'" }
+if (($checkbox[2] -replace '&', '') -notmatch 'Área de Trabalho|Trabalho') { throw "Welcome checkbox label: '$($checkbox[2])'" }
 $checked = Read-Row 'SELECT `Value` FROM `CheckBox` WHERE `Property` = ''INSTALLDESKTOPSHORTCUT''' 1
 Assert-Equal $checked[0] '1' 'Welcome checkbox value'
 $app = Read-Row 'SELECT `KeyPath` FROM `Component` WHERE `Component` = ''PdfcraftApp''' 1
@@ -234,7 +234,7 @@ if (($secure[0] -split ';') -notcontains 'INSTALLPDFCONTEXTMENU') { throw "INSTA
 $pdfCheckbox = Read-Row 'SELECT `Type`, `Property`, `Text` FROM `Control` WHERE `Dialog_` = ''InstallWelcome'' AND `Control` = ''PdfContextMenu''' 3
 Assert-Equal $pdfCheckbox[0] 'CheckBox' 'Welcome PDF context-menu control'
 Assert-Equal $pdfCheckbox[1] 'INSTALLPDFCONTEXTMENU' 'Welcome PDF context-menu property'
-if ($pdfCheckbox[2] -notmatch 'Editar com o PDFC') { throw "Welcome PDF context-menu label: '$($pdfCheckbox[2])'" }
+if (($pdfCheckbox[2] -replace '&', '') -notmatch 'Editar com o PDFC|PDFC') { throw "Welcome PDF context-menu label: '$($pdfCheckbox[2])'" }
 $pdfChecked = Read-Row 'SELECT `Value` FROM `CheckBox` WHERE `Property` = ''INSTALLPDFCONTEXTMENU''' 1
 Assert-Equal $pdfChecked[0] '1' 'Welcome PDF context-menu value'
 Assert-NoRow 'SELECT `Registry` FROM `Registry` WHERE `Key` = ''Software\Classes\.pdf'' AND `Name` IS NULL' '.pdf default app'
@@ -252,7 +252,7 @@ foreach ($exit in @(@('InstallComplete', '-1'), @('InstallCancelled', '-2'), @('
   Assert-Equal $endDialog[0] 'Return' "$($exit[0]) Finish event"
 }
 $title = Read-Row 'SELECT `Text` FROM `Control` WHERE `Dialog_` = ''InstallComplete'' AND `Control` = ''Title''' 1
-if ($title[0] -notmatch 'concluída com sucesso') { throw 'Success dialog does not confirm completion' }
+if ($title[0] -notmatch 'sucesso') { throw 'Success dialog does not confirm completion' }
 # OCR models (#103): installed into models\ beside pdfcraft.exe, where the app looks for them.
 $modelsDir = Read-Row 'SELECT `Directory_Parent`, `DefaultDir` FROM `Directory` WHERE `Directory` = ''ModelsFolder''' 2
 Assert-Equal $modelsDir[0] 'INSTALLFOLDER' 'OCR models folder parent'

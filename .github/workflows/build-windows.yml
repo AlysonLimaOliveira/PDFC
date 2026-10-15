@@ -31,6 +31,9 @@ jobs:
         with:
           targets: x86_64-pc-windows-msvc
 
+      - name: Cache de Compilação do Rust
+        uses: Swatinem/rust-cache@v2
+
       - name: Configurar .NET SDK
         uses: actions/setup-dotnet@v4
         with:
