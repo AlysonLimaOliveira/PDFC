@@ -1155,8 +1155,8 @@ fn dialogs(app: &mut PdfCraftApp, ctx: &egui::Context) {
                         ui.horizontal(|ui| {
                             widgets::corupa_mark(ui, 48.0);
                             ui.vertical(|ui| {
-                                ui.label(egui::RichText::new("Prefeitura Municipal de Corupá").font(theme::semibold(19.0)));
-                                ui.label(egui::RichText::new("Editor de Documentos PDF").font(theme::medium(14.0)));
+                                ui.label(egui::RichText::new("PDFC").font(theme::semibold(22.0)));
+                                ui.label(egui::RichText::new("Prefeitura Municipal de Corupá").font(theme::medium(14.0)));
                                 ui.label(crate::i18n::fmt(tl!("Version {v}"), &[("v", &pdfcraft_engine::build_info::version())]));
                             });
                         });
