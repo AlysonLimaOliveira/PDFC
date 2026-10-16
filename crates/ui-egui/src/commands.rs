@@ -86,7 +86,11 @@ impl PdfCraftApp {
         }
         commands::is_enabled(spec, &self.session, self.active_ids().map(|(_, id)| id))
             && (spec.id != "edit.copy"
-                || self.active.and_then(|i| self.views.get(i)).is_some_and(|v| !v.organize && v.selected_text().is_some_and(|t| !t.is_empty())))
+                || self.active.and_then(|i| self.views.get(i)).is_some_and(|v| {
+                    !v.organize
+                        && (v.selected_text().is_some_and(|t| !t.is_empty())
+                            || (self.quick_tool == crate::QuickTool::EditText && v.objects.count() > 0))
+                }))
             && (spec.needs != commands::Needs::TwoPageView || self.active.and_then(|i| self.views.get(i)).is_some_and(crate::DocView::cover_applies))
             && match spec.id {
                 "view.previous_view" => self.active.and_then(|i| self.views.get(i)).is_some_and(|v| !v.back.is_empty()),
@@ -539,7 +543,14 @@ impl PdfCraftApp {
             }
             "page.copy" => self.copy_pages(false),
             "page.cut" => self.copy_pages(true),
-            "page.paste" => self.paste_pages(),
+            "page.paste" => {
+                if self.quick_tool == crate::QuickTool::EditText {
+                    if let Some(i) = active {
+                        return self.paste_selection(i);
+                    }
+                }
+                self.paste_pages()
+            }
             "comment.hide_all" => {
                 if let Some(i) = active {
                     let id = self.views[i].id;

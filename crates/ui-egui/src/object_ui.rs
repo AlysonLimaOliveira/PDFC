@@ -39,6 +39,10 @@ impl ObjectSelection {
         self.selected.len()
     }
 
+    pub fn selected(&self) -> &[EditableObject] {
+        &self.selected
+    }
+
     /// A preview belongs to the active, focused document. Returning from another tab or a
     /// modal must not turn a release that happened elsewhere into a document edit.
     pub fn set_input_blocked(&mut self, blocked: bool) {
@@ -412,6 +416,87 @@ pub(crate) fn move_error(error: &pdfcraft_engine::EditError) -> String {
     }
 }
 
+/// Formats a list of editable objects into plain text (TSV for multiple columns) and HTML table
+/// if the objects form a multi-column or multi-row tabular layout.
+pub(crate) fn format_objects_as_table(objects: &[EditableObject]) -> (String, Option<String>) {
+    let mut text_objects: Vec<&EditableObject> = objects.iter().filter(|o| o.text.is_some()).collect();
+    if text_objects.is_empty() {
+        return (String::new(), None);
+    }
+    if text_objects.len() == 1 {
+        let text = text_objects.first().and_then(|o| o.text.as_deref()).unwrap_or("").to_string();
+        return (text, None);
+    }
+    // PDF user space: y increases upward, so top-to-bottom order is descending vertical center.
+    text_objects.sort_by(|a, b| {
+        let cy_a = (a.rect[1] + a.rect[3]) / 2.0;
+        let cy_b = (b.rect[1] + b.rect[3]) / 2.0;
+        cy_b.total_cmp(&cy_a)
+    });
+    let mut rows: Vec<(f64, f64, Vec<&EditableObject>)> = Vec::new();
+    for obj in text_objects {
+        let cy = (obj.rect[1] + obj.rect[3]) / 2.0;
+        let min_y = obj.rect[1].min(obj.rect[3]);
+        let max_y = obj.rect[1].max(obj.rect[3]);
+        match rows.last_mut() {
+            Some((top, bottom, members)) => {
+                let overlap = top.min(max_y) - bottom.max(min_y);
+                let h_min = (*top - *bottom).min(max_y - min_y);
+                if (overlap > 0.0 && overlap > 0.25 * h_min) || (cy >= *bottom && cy <= *top) {
+                    members.push(obj);
+                    *top = (*top).max(max_y);
+                    *bottom = (*bottom).min(min_y);
+                } else {
+                    rows.push((max_y, min_y, vec![obj]));
+                }
+            }
+            None => rows.push((max_y, min_y, vec![obj])),
+        }
+    }
+    let mut is_table = false;
+    let mut out = Vec::with_capacity(rows.len());
+    let mut row_cells: Vec<Vec<String>> = Vec::with_capacity(rows.len());
+    for (_, _, mut members) in rows {
+        if members.len() > 1 {
+            is_table = true;
+        }
+        members.sort_by(|a, b| a.rect[0].total_cmp(&b.rect[0]));
+        let cells: Vec<String> = members
+            .iter()
+            .map(|o| o.text.as_deref().unwrap_or("").to_string())
+            .collect();
+        out.push(cells.join("\t"));
+        row_cells.push(cells);
+    }
+    let plain = out.join("\n");
+    let html = if is_table {
+        let mut h = String::from("<table border=\"1\">\n");
+        for cells in &row_cells {
+            h.push_str("  <tr>\n");
+            for cell in cells {
+                h.push_str("    <td>");
+                for c in cell.chars() {
+                    match c {
+                        '&' => h.push_str("&amp;"),
+                        '<' => h.push_str("&lt;"),
+                        '>' => h.push_str("&gt;"),
+                        '"' => h.push_str("&quot;"),
+                        '\'' => h.push_str("&#39;"),
+                        _ => h.push(c),
+                    }
+                }
+                h.push_str("</td>\n");
+            }
+            h.push_str("  </tr>\n");
+        }
+        h.push_str("</table>\n");
+        Some(h)
+    } else {
+        None
+    };
+    (plain, html)
+}
+
 #[cfg(test)]
 mod tests {
     #[test]
@@ -434,5 +519,41 @@ mod tests {
             }
             assert_ne!(crate::i18n::trn(lang, 2, "{n} object selected", "{n} objects selected"), "2 objects selected", "{}", language.code);
         }
+    }
+
+    #[test]
+    fn formats_objects_as_table() {
+        use pdfcraft_engine::{EditableObject, ObjectKind, ObjectTarget};
+        let o1 = EditableObject {
+            target: ObjectTarget { kind: ObjectKind::Text, index: 0 },
+            rect: [10.0, 100.0, 50.0, 115.0],
+            content_type: "text",
+            text: Some("Cell A1".into()),
+        };
+        let o2 = EditableObject {
+            target: ObjectTarget { kind: ObjectKind::Text, index: 1 },
+            rect: [60.0, 100.0, 100.0, 115.0],
+            content_type: "text",
+            text: Some("Cell B1".into()),
+        };
+        let o3 = EditableObject {
+            target: ObjectTarget { kind: ObjectKind::Text, index: 2 },
+            rect: [10.0, 80.0, 50.0, 95.0],
+            content_type: "text",
+            text: Some("Cell A2".into()),
+        };
+        let o4 = EditableObject {
+            target: ObjectTarget { kind: ObjectKind::Text, index: 3 },
+            rect: [60.0, 80.0, 100.0, 95.0],
+            content_type: "text",
+            text: Some("Cell B2".into()),
+        };
+        let (plain, html) = super::format_objects_as_table(&[o4, o2, o1, o3]);
+        assert_eq!(plain, "Cell A1\tCell B1\nCell A2\tCell B2");
+        assert!(html.is_some());
+        let h = html.unwrap();
+        assert!(h.contains("<table border=\"1\">"));
+        assert!(h.contains("<td>Cell A1</td>"));
+        assert!(h.contains("<td>Cell B2</td>"));
     }
 }

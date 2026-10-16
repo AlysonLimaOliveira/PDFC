@@ -381,3 +381,19 @@ fn modifier_selection_picks_foreground_text_and_added_items_over_background_artw
         assert!(new.rect.iter().enumerate().all(|(i, value)| (value - old.rect[i] - shift[i % 2]).abs() < 0.01), "{old:?} -> {new:?}");
     }
 }
+
+#[test]
+fn object_selection_can_be_copied_and_pasted() {
+    let mut h = harness();
+    let before_count = objects(&h).len();
+    marquee(&mut h);
+    h.get_by_label("3 objects selected");
+    let cmd = pdfcraft_engine::commands::command("edit.copy").unwrap();
+    assert!(h.state().command_enabled(cmd));
+    assert!(h.state_mut().execute("edit.copy"));
+    assert!(h.state().object_clipboard.is_some());
+    assert!(h.state_mut().execute("page.paste"));
+    h.run_steps(4);
+    let after = objects(&h);
+    assert!(after.len() > before_count);
+}

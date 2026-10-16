@@ -270,6 +270,12 @@ impl PageText {
     /// turned by `/Rotate`) rows mean nothing, and the lines come out one per row in reading order
     /// instead.
     pub fn column_text(&self, glyphs: &[usize]) -> String {
+        self.formatted_column_text(glyphs).0
+    }
+
+    /// Like [`Self::column_text`], but also returns an HTML table representation when the glyphs
+    /// span multiple visual columns.
+    pub fn formatted_column_text(&self, glyphs: &[usize]) -> (String, Option<String>) {
         // The selected glyphs of each line, with their box: (glyphs, bbox).
         let mut lines: Vec<(Vec<usize>, [f32; 4])> = Vec::new();
         let mut line_ids: Vec<u32> = Vec::new();
@@ -303,7 +309,7 @@ impl PageText {
             s
         };
         if vertical {
-            return lines.iter().map(|(members, _)| piece(members)).collect::<Vec<_>>().join("\n");
+            return (lines.iter().map(|(members, _)| piece(members)).collect::<Vec<_>>().join("\n"), None);
         }
         // Rows: a line joins the row whose first line its vertical centre falls within.
         let mut order: Vec<usize> = (0..lines.len()).collect();
@@ -322,7 +328,12 @@ impl PageText {
         }
         let rtl = |members: &[usize]| members.iter().any(|&i| self.glyphs.get(i).is_some_and(|g| g.text.chars().any(is_rtl)));
         let mut out = Vec::with_capacity(rows.len());
+        let mut row_cells: Vec<Vec<String>> = Vec::with_capacity(rows.len());
+        let mut is_table = false;
         for (_, _, mut members) in rows {
+            if members.len() > 1 {
+                is_table = true;
+            }
             let right_to_left = members.iter().all(|&k| lines.get(k).is_some_and(|(m, _)| rtl(m)));
             members.sort_by(|a, b| {
                 let x = |k: usize| lines.get(k).map_or(0.0, |(_, bb)| bb[0]);
@@ -330,8 +341,35 @@ impl PageText {
             });
             let cells: Vec<String> = members.iter().filter_map(|&k| lines.get(k)).map(|(m, _)| piece(m)).collect();
             out.push(cells.join("\t"));
+            row_cells.push(cells);
         }
-        out.join("\n")
+        let plain = out.join("\n");
+        let html = if is_table {
+            let mut h = String::from("<table border=\"1\">\n");
+            for cells in &row_cells {
+                h.push_str("  <tr>\n");
+                for cell in cells {
+                    h.push_str("    <td>");
+                    for c in cell.chars() {
+                        match c {
+                            '&' => h.push_str("&amp;"),
+                            '<' => h.push_str("&lt;"),
+                            '>' => h.push_str("&gt;"),
+                            '"' => h.push_str("&quot;"),
+                            '\'' => h.push_str("&#39;"),
+                            _ => h.push(c),
+                        }
+                    }
+                    h.push_str("</td>\n");
+                }
+                h.push_str("  </tr>\n");
+            }
+            h.push_str("</table>");
+            Some(h)
+        } else {
+            None
+        };
+        (plain, html)
     }
 }
 

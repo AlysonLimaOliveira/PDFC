@@ -260,12 +260,29 @@ impl Selection {
         }
     }
 
+    /// The selected text and optional HTML table representation.
+    fn formatted_text(&self, text: &PageText) -> (String, Option<String>) {
+        match self.span {
+            Span::Run { anchor, head } => {
+                let range = Self::range(anchor, head);
+                let glyphs: Vec<usize> = range.clone().collect();
+                let (plain_table, html) = text.formatted_column_text(&glyphs);
+                if html.is_some() {
+                    (plain_table, html)
+                } else {
+                    (text.text_of(range), None)
+                }
+            }
+            Span::Column { rect } => {
+                let glyphs = text.glyphs_in(rect);
+                text.formatted_column_text(&glyphs)
+            }
+        }
+    }
+
     /// The selected text, as Copy puts it on the clipboard.
     fn text(&self, text: &PageText) -> String {
-        match self.span {
-            Span::Run { anchor, head } => text.text_of(Self::range(anchor, head)),
-            Span::Column { rect } => text.column_text(&text.glyphs_in(rect)),
-        }
+        self.formatted_text(text).0
     }
 }
 
@@ -1065,11 +1082,17 @@ impl DocView {
         Some(xf.view_rect(g.rect).center())
     }
 
-    /// Selected text, if any (⌘C).
-    pub fn selected_text(&self) -> Option<String> {
+    /// Selected text and optional HTML table formatting, if any (⌘C).
+    pub fn selected_text_formatted(&self) -> Option<(String, Option<String>)> {
         let s = self.selection?;
         let t = self.texts.get(&s.page)?;
-        Some(s.text(t)).filter(|x| !x.is_empty())
+        let (plain, html) = s.formatted_text(t);
+        if plain.is_empty() { None } else { Some((plain, html)) }
+    }
+
+    /// Selected text, if any (⌘C).
+    pub fn selected_text(&self) -> Option<String> {
+        self.selected_text_formatted().map(|(p, _)| p)
     }
 
     pub fn thumb(&self, page: usize) -> Option<&TextureHandle> {

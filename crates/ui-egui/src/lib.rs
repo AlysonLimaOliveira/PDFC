@@ -598,6 +598,7 @@ pub struct PdfCraftApp {
     pub system_title_bar: bool,
     /// Whether the window currently has the app's header bar (`None` until the first frame).
     app_frame_shown: Option<bool>,
+    pub(crate) object_clipboard: Option<Vec<pdfcraft_engine::EditableObject>>,
     pub password_prompt: Option<PasswordPrompt>,
     pub unlock_prompt: Option<UnlockPrompt>,
     pub full_screen: bool,
@@ -950,6 +951,7 @@ impl PdfCraftApp {
             window_controls: None,
             system_title_bar: false,
             app_frame_shown: None,
+            object_clipboard: None,
             password_prompt: None,
             unlock_prompt: None,
             full_screen: false,
@@ -2815,6 +2817,7 @@ impl PdfCraftApp {
             }
             canvas::shortcuts(&mut self.views[i], ctx, self.scroll_speed);
             self.copy_key(i, ctx);
+            self.paste_key(i, ctx);
             self.image_pick_keys(i, ctx);
         }
     }
@@ -2838,26 +2841,182 @@ impl PdfCraftApp {
         false
     }
 
-    /// ⌘C copies the selected text, unless a text field has the keyboard (it copies its own).
+    /// ⌘C copies the selected text or objects, unless a text field has the keyboard (it copies its own).
     fn copy_key(&mut self, i: usize, ctx: &egui::Context) {
         // ⌘C arrives as a Copy event on most platforms.
-        let copy = ctx.input(|input| input.events.iter().any(|e| matches!(e, egui::Event::Copy)));
+        let copy = ctx.input(|input| {
+            input.events.iter().any(|e| matches!(e, egui::Event::Copy))
+                || (input.modifiers.command && input.key_pressed(egui::Key::C))
+        });
         if !copy || ctx.egui_wants_keyboard_input() {
             return;
         }
         self.copy_selected_text(i, ctx);
     }
 
+    /// ⌘V pastes copied objects or clipboard text onto the current page when in Edit mode.
+    fn paste_key(&mut self, i: usize, ctx: &egui::Context) {
+        let paste = ctx.input(|input| {
+            input.events.iter().any(|e| matches!(e, egui::Event::Paste(_)))
+                || (input.modifiers.command && input.key_pressed(egui::Key::V))
+        });
+        if !paste || ctx.egui_wants_keyboard_input() {
+            return;
+        }
+        if self.views.get(i).is_some_and(|v| v.organize) {
+            return;
+        }
+        if self.quick_tool == QuickTool::EditText {
+            self.paste_selection(i);
+        }
+    }
+
+    /// Set system clipboard text and HTML content cross-platform.
+    pub(crate) fn set_system_clipboard_text(&self, plain: &str, html: Option<&str>) {
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            if let Ok(mut cb) = arboard::Clipboard::new() {
+                if let Some(h) = html {
+                    let _ = cb.set_html(h, Some(plain));
+                } else {
+                    let _ = cb.set_text(plain);
+                }
+            }
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            let _ = (plain, html);
+        }
+    }
+
     /// Shared permission gate for copying selected page text from menus and keyboard events.
     pub(crate) fn copy_selected_text(&mut self, i: usize, ctx: &egui::Context) -> bool {
-        let Some((id, text)) = self.views.get(i).and_then(|v| Some((v.id, v.selected_text()?))).filter(|(_, text)| !text.is_empty()) else {
-            return false;
-        };
+        let Some(view) = self.views.get(i) else { return false };
+        let id = view.id;
         if !self.may_copy(id) {
             return false;
         }
-        ctx.copy_text(text);
-        true
+
+        if let Some((plain, html)) = view.selected_text_formatted() {
+            if !plain.is_empty() {
+                ctx.copy_text(plain.clone());
+                self.set_system_clipboard_text(&plain, html.as_deref());
+                return true;
+            }
+        }
+
+        if self.quick_tool == QuickTool::EditText && view.objects.count() > 0 {
+            let selected = view.objects.selected();
+            let (plain, html) = object_ui::format_objects_as_table(selected);
+            if !plain.is_empty() {
+                self.object_clipboard = Some(selected.to_vec());
+                ctx.copy_text(plain.clone());
+                self.set_system_clipboard_text(&plain, html.as_deref());
+                return true;
+            }
+        }
+
+        false
+    }
+
+    /// Paste copied objects or clipboard text onto the current page.
+    pub(crate) fn paste_selection(&mut self, i: usize) -> bool {
+        let Some((_, id)) = self.active_ids() else { return false };
+        if !self.session.get(id).is_some_and(|d| d.allows_modification()) {
+            return false;
+        }
+        let page = self.views.get(i).map_or(0, |v| v.current);
+        let (page_width, page_height) = self
+            .session
+            .get(id)
+            .and_then(|d| d.info.pages.get(page))
+            .map(|p| (p.width as f64, p.height as f64))
+            .unwrap_or((612.0, 792.0));
+
+        if let Some(objects) = self.object_clipboard.take() {
+            if !objects.is_empty() {
+                let mut pasted = false;
+                let mut new_clipboard = Vec::new();
+                for obj in objects {
+                    let mut shifted = obj.clone();
+                    shifted.rect = [
+                        obj.rect[0] + 15.0,
+                        obj.rect[1] - 15.0,
+                        obj.rect[2] + 15.0,
+                        obj.rect[3] - 15.0,
+                    ];
+                    if let Some(ref text) = shifted.text {
+                        let height = (shifted.rect[3] - shifted.rect[1]).abs();
+                        let size = (height * 0.8).clamp(8.0, 72.0);
+                        let added = pdfcraft_engine::AddedText {
+                            rect: shifted.rect,
+                            text: text.clone(),
+                            size,
+                            ..Default::default()
+                        };
+                        if self.apply_edit(Edit::AddText { page, text: added }) {
+                            pasted = true;
+                        }
+                    }
+                    new_clipboard.push(shifted);
+                }
+                self.object_clipboard = Some(new_clipboard);
+                return pasted;
+            }
+        }
+
+        #[cfg(not(target_arch = "wasm32"))]
+        let clip_text = arboard::Clipboard::new().ok().and_then(|mut c| c.get_text().ok());
+        #[cfg(target_arch = "wasm32")]
+        let clip_text: Option<String> = None;
+
+        if let Some(text) = clip_text.filter(|t| !t.trim().is_empty()) {
+            if text.contains('\t') {
+                let rows: Vec<Vec<&str>> = text.lines().map(|l| l.split('\t').collect()).collect();
+                if !rows.is_empty() {
+                    let num_cols = rows.iter().map(|r| r.len()).max().unwrap_or(1).max(1);
+                    let margin = 54.0;
+                    let table_width = (page_width - margin * 2.0).max(100.0);
+                    let col_width = table_width / num_cols as f64;
+                    let row_height = 20.0;
+                    let start_y = (page_height - 100.0).max(row_height * rows.len() as f64);
+                    let mut any_applied = false;
+                    for (r_idx, row) in rows.iter().enumerate() {
+                        let y_top = start_y - r_idx as f64 * row_height;
+                        let y_bottom = y_top - row_height;
+                        for (c_idx, cell) in row.iter().enumerate() {
+                            let trimmed = cell.trim();
+                            if trimmed.is_empty() {
+                                continue;
+                            }
+                            let x_left = margin + c_idx as f64 * col_width;
+                            let x_right = x_left + col_width;
+                            let added = pdfcraft_engine::AddedText {
+                                rect: [x_left, y_bottom, x_right, y_top],
+                                text: trimmed.to_string(),
+                                size: 11.0,
+                                ..Default::default()
+                            };
+                            if self.apply_edit(Edit::AddText { page, text: added }) {
+                                any_applied = true;
+                            }
+                        }
+                    }
+                    return any_applied;
+                }
+            } else {
+                let margin = 54.0;
+                let added = pdfcraft_engine::AddedText {
+                    rect: [margin, (page_height - 130.0).max(50.0), (page_width - margin).max(margin + 50.0), (page_height - 100.0).max(80.0)],
+                    text,
+                    size: 12.0,
+                    ..Default::default()
+                };
+                return self.apply_edit(Edit::AddText { page, text: added });
+            }
+        }
+
+        false
     }
 
     /// The quick tools' keys, as in Acrobat: V selects, H pans, and holding Space pans until it
