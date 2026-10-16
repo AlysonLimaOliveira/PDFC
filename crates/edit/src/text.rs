@@ -2326,14 +2326,16 @@ fn rewrite_block_from(
         .unwrap_or_default()
         .iter()
         .enumerate()
-        .any(|(i, op)| matches!(op.op.as_slice(), b"Tj" | b"TJ" | b"'" | b"\"") && !drop.contains(&(o.bt_op + i)));
+        .any(|(i, op)| (matches!(op.op.as_slice(), b"Tj" | b"TJ" | b"'" | b"\"") && !drop.contains(&(o.bt_op + i))) || op.is("cm"));
     // What the text after the paragraph expects: the state at its BT (or where it was split).
     let after = if split { &o.state } else { &o.bt_state };
-    block_ops.extend(after.ops().into_iter().filter(|op| !op.is("Tf") || after.font.is_some()));
     if split {
         block_ops.insert(0, Op::new("ET", vec![]));
         block_ops.push(Op::new("BT", vec![]));
+        block_ops.extend(after.ops().into_iter().filter(|op| !op.is("Tf") || after.font.is_some()));
         block_ops.push(Op::new("Tm", o.tlm.iter().map(|v| n(*v)).collect()));
+    } else {
+        block_ops.extend(after.ops().into_iter().filter(|op| !op.is("Tf") || after.font.is_some()));
     }
     let at = if split { start } else { o.bt_op };
     let new_data = splice(&pieces, &ops, |i| {

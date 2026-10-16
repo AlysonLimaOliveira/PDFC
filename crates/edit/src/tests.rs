@@ -2221,6 +2221,46 @@ fn replacing_a_line_keeps_a_distinct_nearby_line() {
 }
 
 #[test]
+fn rewrite_paragraph_with_cm_inside_bt() {
+    let src = "q BT /F1 12 Tf 1 0 0 1 72 700 cm 1 0 0 1 0 0 Tm (Alpha) Tj ET Q";
+    let mut doc = text_page(src);
+    assert_eq!(text::text_blocks(&doc, 0).unwrap().len(), 1);
+    let before = text::text_blocks(&doc, 0).unwrap()[0].clone();
+    assert!((before.rect[0] - 72.0).abs() < 1.0);
+    assert!((before.rect[1] - 700.0).abs() < 1.0);
+
+    text::rewrite_block(&mut doc, 0, 0, Some("ALPHA"), &text::BlockStyle::default()).unwrap();
+    let after = text::text_blocks(&doc, 0).unwrap()[0].clone();
+    assert_eq!(after.text, "ALPHA");
+    assert!((after.rect[0] - 72.0).abs() < 1.0, "rect[0] was {}", after.rect[0]);
+    assert!((after.rect[1] - 700.0).abs() < 1.0, "rect[1] was {}", after.rect[1]);
+}
+
+#[test]
+fn rewrite_styled_paragraph_with_cm_inside_bt() {
+    let src = "q BT /F1 12 Tf 1 0 0 1 72 700 cm 1 0 0 1 0 0 Tm (Alpha) Tj ET Q";
+    let mut doc = text_page(src);
+    let style = text::BlockStyle {
+        ranges: vec![text::RangeStyle {
+            range: 0..5,
+            family: None,
+            resource: None,
+            size: Some(14.0),
+            color: None,
+            underline: None,
+            char_spacing: None,
+            scale: None,
+        }],
+        ..Default::default()
+    };
+    text::rewrite_block(&mut doc, 0, 0, Some("ALPHA"), &style).unwrap();
+    let after = text::text_blocks(&doc, 0).unwrap()[0].clone();
+    assert_eq!(after.text, "ALPHA");
+    assert!((after.rect[0] - 72.0).abs() < 1.0, "rect[0] was {}", after.rect[0]);
+    assert!((after.rect[1] - 700.0).abs() < 1.0, "rect[1] was {}", after.rect[1]);
+}
+
+#[test]
 fn paragraphs_move_and_rewrap_to_a_new_width() {
     let para = "BT /F1 10 Tf 12 TL 100 700 Td (One two three four five six seven) Tj T* (eight nine ten eleven twelve) Tj ET";
     let close = |a: f64, b: f64| (a - b).abs() < 0.5;

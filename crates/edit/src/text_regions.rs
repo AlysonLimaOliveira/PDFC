@@ -817,13 +817,15 @@ pub(super) fn rewrite_styled_block(
         .unwrap_or_default()
         .iter()
         .enumerate()
-        .any(|(i, op)| matches!(op.op.as_slice(), b"Tj" | b"TJ" | b"'" | b"\"") && !drop.contains(&(o.bt_op + i)));
+        .any(|(i, op)| (matches!(op.op.as_slice(), b"Tj" | b"TJ" | b"'" | b"\"") && !drop.contains(&(o.bt_op + i))) || op.is("cm"));
     let after = if split { &o.state } else { &o.bt_state };
-    block_ops.extend(after.ops());
     if split {
         block_ops.insert(0, Op::new("ET", vec![]));
         block_ops.push(Op::new("BT", vec![]));
+        block_ops.extend(after.ops());
         block_ops.push(Op::new("Tm", o.tlm.iter().map(|v| n(*v)).collect()));
+    } else {
+        block_ops.extend(after.ops());
     }
     let at = if split { start } else { o.bt_op };
     let data = splice(&pieces, &ops, |i| (if i == at { std::mem::take(&mut block_ops) } else { Vec::new() }, !drop.contains(&i)));
